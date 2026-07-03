@@ -27,6 +27,11 @@ Auth: any non-empty "Authorization: Bearer ..." header is accepted, unless
 Token accounting: tokens are approximated as whitespace-separated words. Both
 streaming and non-streaming responses include a "usage" object (streaming
 sends it in the final chunk before [DONE]).
+
+Refusal trigger: a <name>-small model refuses any prompt containing [refuse]
+("I'm sorry, but I can't help with that."); the -large models answer it.
+Useful for testing response-quality escalation (detect the refusal, retry on
+a stronger model).
 """
 
 import argparse
@@ -58,6 +63,9 @@ def build_reply(provider_name, model, messages):
         (m.get("content", "") for m in reversed(messages) if m.get("role") == "user"),
         "your request",
     )
+    # Escalation hook: small models refuse [refuse]-marked prompts, large ones answer
+    if "[refuse]" in str(last_user).lower() and model.endswith("-small"):
+        return "I'm sorry, but I can't help with that."
     topic = " ".join(str(last_user).split()[:12])
     # Deterministic per prompt (crc32, not hash(): hash() is salted per process)
     template = REPLIES[zlib.crc32(topic.encode()) % len(REPLIES)]

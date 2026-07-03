@@ -2,11 +2,12 @@
 
 This guide defines language-agnostic verification expectations for Prism. Unlike an answer-quality capstone, Prism is infrastructure: it is verified by behavior under contract checks, concurrency, and injected failures — not by judging model output.
 
-Verification has three parts:
+Verification has four parts:
 
 1. the provided **smoke test** (contract compliance),
 2. the provided **load test** (correctness under concurrency),
-3. a **manual failure drill** you record in your demo video.
+3. a **routing eval** you build over the provided labeled cases (AI decision quality),
+4. a **manual failure drill** you record in your demo video.
 
 ## 1. Smoke Test
 
@@ -53,7 +54,36 @@ The script sums, client-side: accepted requests, prompt/completion tokens from r
 
 Client-observed average and p95 for the burst — a sanity number for your report, not a pass/fail gate.
 
-## 3. Manual Failure Drill
+## 3. Routing Eval
+
+Use `data/routing_eval.jsonl`. Each line contains:
+
+- `id`
+- `expected_tier` (`fast` or `smart`)
+- `note` (why the case is labeled that way)
+- `prompt`
+
+Build one command, endpoint, or test that sends every prompt through your `auto` router (classification only — you do not need to complete the upstream call) and reports:
+
+```json
+{
+  "total": 20,
+  "correct": 17,
+  "accuracy": 0.85,
+  "cases": [
+    {"id": "route_011", "expected": "smart", "actual": "smart", "reason": "proof request; judged complex"}
+  ]
+}
+```
+
+Rules and expectations:
+
+- Do not use `expected_tier` inside your routing logic — it is the answer key, for evaluation only.
+- The set is trapped: short-but-hard prompts (`route_011`, `route_012`, `route_013`, `route_019`, `route_020`) and long-but-trivial ones (`route_006`, `route_007`, `route_010`). A length-only heuristic scores around 60% by design.
+- Report your accuracy honestly and explain the misses. A documented method reaching 80%+ is a solid baseline; beating it with a cleverer classifier is visible, gradable work.
+- Log the routing reason per case so a reviewer can see *why* the router chose a tier.
+
+## 4. Manual Failure Drill
 
 Record this in your demo (see the problem statement's Recommended Demo Flow):
 
@@ -73,6 +103,7 @@ Record this in your demo (see the problem statement's Recommended Demo Flow):
 
 - Smoke test output (all PASS; explain any WARN).
 - Load test output, plus the matching usage-API numbers demonstrating reconciliation.
+- Routing eval accuracy with per-case results, your classification method, and an explanation of the misses.
 - Your semantic-cache threshold, embedding choice, and observed hit/miss behavior on both sample paraphrase pairs and the near-miss case (`req_cache_a3`).
 - Gateway added latency (coarse measurement is fine — document how you measured).
 - Known limitations (for example single-instance rate limiting).

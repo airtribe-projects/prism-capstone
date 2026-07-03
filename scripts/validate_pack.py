@@ -31,6 +31,7 @@ def main():
     seed = read_json(DATA_DIR / "seed_keys.json")
     config = read_json(DATA_DIR / "gateway_config.sample.json")
     requests = read_jsonl(DATA_DIR / "sample_requests.jsonl")
+    routing_cases = read_jsonl(DATA_DIR / "routing_eval.jsonl")
 
     priced_models = {m for m in pricing if not m.startswith("_")}
     for model, price in pricing.items():
@@ -51,6 +52,11 @@ def main():
 
     aliases = config["model_aliases"]
     for alias, route in aliases.items():
+        if "route_by_difficulty" in route:
+            for tier, target in route["route_by_difficulty"].items():
+                if target not in aliases or "primary" not in aliases.get(target, {}):
+                    raise ValueError(f"Alias '{alias}' tier '{tier}' routes to unknown alias '{target}'")
+            continue
         chain = [route["primary"]] + list(route.get("fallbacks", []))
         for model in chain:
             if model not in priced_models:
@@ -92,9 +98,20 @@ def main():
             if not body["messages"]:
                 raise ValueError(f"Sample request {row['id']} has empty messages")
 
+    route_ids = set()
+    for case in routing_cases:
+        for field in ("id", "expected_tier", "note", "prompt"):
+            if not case.get(field):
+                raise ValueError(f"Routing case missing {field}: {case}")
+        if case["id"] in route_ids:
+            raise ValueError(f"Duplicate routing case id: {case['id']}")
+        route_ids.add(case["id"])
+        if case["expected_tier"] not in aliases or case["expected_tier"] == "auto":
+            raise ValueError(f"Routing case {case['id']} expects unknown tier '{case['expected_tier']}'")
+
     print("Pack OK:")
     print(f"  {len(priced_models)} priced models, {len(provider_names)} providers, {len(aliases)} aliases")
-    print(f"  {len(seed['tenants'])} seed tenants, {len(requests)} sample requests")
+    print(f"  {len(seed['tenants'])} seed tenants, {len(requests)} sample requests, {len(routing_cases)} routing eval cases")
 
 
 if __name__ == "__main__":

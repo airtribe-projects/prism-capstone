@@ -12,6 +12,8 @@ Before working on Good To Have or Stretch items, make sure you can check off eve
 - [ ] Stream token by token, terminating with `data: [DONE]`, with usage still recorded.
 - [ ] Reject invalid keys, disallowed models, rate-limit breaches, and exhausted budgets with distinct errors.
 - [ ] Resolve `fast`/`smart` aliases; retry with backoff; fail over when a provider is down.
+- [ ] Route `auto` requests by prompt difficulty and log the decision.
+- [ ] Report routing accuracy on `data/routing_eval.jsonl` with a one-command eval.
 - [ ] Serve semantically similar repeats from a per-key cache.
 - [ ] Meter cost per request from provider usage and the price table.
 - [ ] Store a request log entry for every request, including rejections.
@@ -56,23 +58,31 @@ Send them a few curl requests (streaming and non-streaming) before writing any g
 - Set `x-prism-fallback: true` and log fallback events.
 - Verify with the mock's failure injection before moving on.
 
-### Step 6: Semantic Cache
+### Step 6: Smart Routing (`auto`)
+
+- Add the `auto` alias: classify the prompt, pick `fast` or `smart`, then reuse the normal alias resolution from Step 5.
+- Start with a baseline classifier and measure it against `data/routing_eval.jsonl` — then improve it until the traps stop fooling it.
+- Log every decision with a reason; surface it in the request log.
+- Build the one-command routing eval now, while the router is fresh — you will rerun it every time you tweak the classifier. That is the point.
+
+### Step 7: Semantic Cache
 
 - Start with normalized exact-match to get the plumbing (per-key scope, hit headers, stats) right.
 - Swap the matcher for similarity: an embeddings API, a local embedding model, or a documented substitute.
 - Tune the threshold until `req_cache_a1`/`req_cache_a2` hit and `req_cache_a3` (different intent) does not.
 - Only cache successful responses. Respect per-key cache settings from the seed data.
 
-### Step 7: Usage API and Ops Console
+### Step 8: Usage API and Ops Console
 
 - Usage summary by key; recent request logs; cache stats.
 - A simple page showing those three things is a complete console. You may vibe-code it.
 
-### Step 8: Verify
+### Step 9: Verify
 
 - Smoke test green.
 - Load test: zero over-admission, totals reconciled against your usage API.
-- Automated tests for cost math, the limiter, and the cache decision.
+- Routing eval: report accuracy and per-case results.
+- Automated tests for cost math, the limiter, the routing decision, and the cache decision.
 
 ## Recommended Demo Scenarios
 
@@ -97,7 +107,17 @@ Expected demo:
 - With the budget-demo key, the first request consumes the tiny budget and the second returns `budget_exceeded` — no setup needed.
 - Both rejection types appear in the request log and console.
 
-### Scenario 3: Provider Failure
+### Scenario 3: Smart Routing
+
+Use `prism-sk-research-4d5e6f` with the `auto` alias.
+
+Expected demo:
+
+- `route_011` ("Prove that the square root of 2 is irrational.") — short prompt, routed to `smart`, with the reason visible in the log.
+- `route_006` (the long on-call roster lookup) — long prompt, routed to `fast`.
+- The routing eval command runs and prints accuracy over all 20 cases.
+
+### Scenario 4: Provider Failure
 
 Expected demo:
 
@@ -118,6 +138,18 @@ No. An embeddings API or local model is ideal, but a clearly documented local su
 ### What counts as "semantic"?
 
 The paraphrase pair `req_cache_a1`/`req_cache_a2` should hit; the near-miss `req_cache_a3` (password reset vs 2FA reset) should not. If your matcher achieves that, it qualifies.
+
+### How smart does the `auto` router have to be?
+
+Smarter than a length check — the eval set is trapped so length-only scores about 60%. Any documented method is fine: embedding similarity to labeled examples, a small LLM judge, or engineered signals (question type, imperative verbs, code presence, reasoning markers). You are graded on measured accuracy and on explaining your misses, not on the technique.
+
+### Can the router's LLM judge use the mock providers?
+
+No — the mocks return canned text, so they cannot classify. If you want an LLM judge, use a free-tier hosted model or a local one (Ollama). Embedding or heuristic routers work fully offline.
+
+### Does an `auto` request need the whole prompt or can I truncate?
+
+Your call — truncating very long prompts before classification is a legitimate latency/cost optimization. Document it, and make sure the long-but-trivial eval cases still route correctly.
 
 ### Can rate limiting be in memory?
 

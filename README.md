@@ -1,6 +1,6 @@
 # Prism Capstone Pack
 
-This repository contains a self-contained capstone package for building **Prism**, an AI-first LLM gateway with routing, failover, streaming, per-tenant metering, budgets, and a semantic cache.
+This repository contains a self-contained capstone package for building **Prism**, an AI-first LLM gateway with smart difficulty-based routing, failover, streaming, per-tenant metering, budgets, and a semantic cache. The gateway makes two AI decisions on every request: how hard is this prompt (which model tier deserves it), and have we answered it before (semantic cache).
 
 The capstone is language agnostic. You may implement it in Node.js, Java, Python, Go, Ruby, or any stack you are comfortable with, as long as you satisfy the API, correctness, and verification requirements.
 
@@ -15,6 +15,7 @@ The capstone is language agnostic. You may implement it in Node.js, Java, Python
 - `data/seed_keys.json` - four seed tenants with budgets, limits, allowlists, and cache settings (including a tiny-budget key for the budget-exhaustion demo).
 - `data/gateway_config.sample.json` - sample provider registry, model aliases, and fallback chains.
 - `data/sample_requests.jsonl` - annotated request bodies, including cache-test prompt pairs and negative cases.
+- `data/routing_eval.jsonl` - 20 labeled prompts for grading the `auto` router, with short-but-hard and long-but-trivial traps.
 - `scripts/mock_provider.py` - zero-dependency OpenAI-compatible mock provider with live failure injection.
 - `scripts/smoke_test.py` - checks your gateway against the required API and header contract.
 - `scripts/load_test.py` - checks rate-limit over-admission and accounting accuracy under concurrency.
@@ -76,6 +77,7 @@ Your implementation should provide:
 - Streaming pass-through without buffering.
 - Virtual-key authentication with per-key allowlists, rate limits, and monthly budgets.
 - Alias-based routing with retries and provider failover.
+- An `auto` alias that classifies prompt difficulty and routes to a model tier, evaluated against `data/routing_eval.jsonl`.
 - A per-tenant semantic response cache.
 - Accurate cost metering, request logs, and a usage API.
 - A lightweight ops console for usage, recent requests, and cache stats.

@@ -8,6 +8,7 @@ This is a language-agnostic data model. You may use SQL, NoSQL, document stores,
 - `data/seed_keys.json`
 - `data/gateway_config.sample.json`
 - `data/sample_requests.jsonl` (test inputs only — not entities to store)
+- `data/routing_eval.jsonl` (labeled router test cases — for evaluation only; do not use the labels inside your routing logic)
 
 These files are the canonical seed data. `gateway_config.sample.json` shows one reasonable shape for provider/alias configuration; you may restructure it, but keep the provider names, model names, alias names, and seed key values, because the demo flow and scripts reference them.
 
@@ -71,6 +72,7 @@ One per data-plane request, including rejected ones. Required fields:
 - `cost_usd`
 - `cache` (`hit`/`miss`)
 - `fallback` (boolean)
+- `route_reason` (nullable; for `auto` requests: the chosen tier and why)
 - `retries` (count)
 - `latency_ms`
 - `created_at`
