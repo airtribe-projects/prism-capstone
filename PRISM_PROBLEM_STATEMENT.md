@@ -33,8 +33,6 @@ The provided Python scripts are optional local utilities. They are not part of t
 
 Prism has a clear core scope. Build the Must Have features first. Good To Have and Stretch features should only be attempted after the core gateway works end to end.
 
-Prism is the infrastructure-heavy option in the capstone set. Most of the effort goes into correctness under pressure — concurrency, streaming, failover — with the AI concentrated in two decisions the gateway makes on every request: how hard is this prompt (routing), and have we answered it before (semantic cache). Pick it if that is the kind of engineering you want to show.
-
 ## Recommended Demo Flow
 
 Your final demo should be able to show this flow clearly:
