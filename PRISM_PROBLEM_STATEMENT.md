@@ -69,6 +69,7 @@ Your final demo should be able to show this flow clearly:
 - Do not silently splice two providers' outputs when a stream fails midway. Decide and document your mid-stream failure behavior.
 - Do not let callers hardcode provider model names. Aliases (`fast`, `smart`) exist so routing stays a gateway decision.
 - Do not let a hung provider hang your client. Every upstream call needs a timeout.
+- Do not build Good To Have features before the Must Have gateway works end to end.
 
 ## Must Have
 

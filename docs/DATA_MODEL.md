@@ -88,6 +88,7 @@ Correctness requirements:
 - Budget enforcement reads must be cheap (do not scan all logs on every request).
 - Increments must be atomic — two concurrent requests must both be counted.
 - Decide and document whether a request that is admitted concurrently with another may slightly overshoot the budget, and by how much.
+- Streaming complicates admission: the final cost is unknown when the request is admitted. Admitting a stream when budget remains at the start — and letting in-flight streams overshoot the budget by their own final cost — is acceptable if documented.
 
 ### Cache Entry
 

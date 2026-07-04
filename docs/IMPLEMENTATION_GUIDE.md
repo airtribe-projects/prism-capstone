@@ -139,6 +139,14 @@ No. An embeddings API or local model is ideal, but a clearly documented local su
 
 The paraphrase pair `req_cache_a1`/`req_cache_a2` should hit; the near-miss `req_cache_a3` (password reset vs 2FA reset) should not. If your matcher achieves that, it qualifies.
 
+### What happens when a streaming request hits the cache?
+
+Any documented behavior is fine for Must Have: replay the cached response as a single SSE chunk followed by `data: [DONE]`, or skip the cache for streaming requests entirely. Set `x-prism-cache` to reflect what actually happened, and document your choice. Replaying cached responses as properly paced SSE streams is Good To Have.
+
+### How is the cache keyed for multi-turn conversations?
+
+Your documented choice — the full message array, the last user message, or the last N turns each trade false hits against cache usefulness. The graded paraphrase pairs are all single-turn; `req_multiturn` exists so you think about and document this case, not to grade a specific answer.
+
 ### How smart does the `auto` router have to be?
 
 Smarter than a length check — the eval set is trapped so length-only scores about 60%. Any documented method is fine: embedding similarity to labeled examples, a small LLM judge, or engineered signals (question type, imperative verbs, code presence, reasoning markers). You are graded on measured accuracy and on explaining your misses, not on the technique.
